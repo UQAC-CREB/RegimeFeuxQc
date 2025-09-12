@@ -5,6 +5,6 @@ account: hgesdrn
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 15091077
-bundleId: 10633225
+bundleId:
 url: https://hgesdrn.shinyapps.io/regimefeux_shiny/
 version: 1
