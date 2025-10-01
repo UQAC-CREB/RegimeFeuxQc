@@ -1,12 +1,19 @@
+#
 name: Deploy Shiny App
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    env:
+      SHINYAPPS_NAME: ${{ secrets.SHINYAPPS_NAME }}
+      SHINYAPPS_TOKEN: ${{ secrets.SHINYAPPS_TOKEN }}
+      SHINYAPPS_SECRET: ${{ secrets.SHINYAPPS_SECRET }}
 
     steps:
       - name: Checkout repository
@@ -14,8 +21,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt update
+          sudo apt install -y \
             libudunits2-dev \
             libgdal-dev \
             libgeos-dev \
@@ -25,38 +32,20 @@ jobs:
             libcurl4-openssl-dev \
             protobuf-compiler \
             libprotobuf-dev
+ 
 
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
         with:
           r-version: '4.3.2'
 
-      - name: Restore R environment
-        run: |
-          install.packages("renv")
-          renv::restore()
-        shell: Rscript {0}
+      - name: Set up R dependencies
+        run: Rscript -e 'install.packages(c("renv", "rsconnect"), repos = "https://cloud.r-project.org")'
 
-      - name: Install rsconnect
-        run: |
-          install.packages("rsconnect")
-        shell: Rscript {0}
+      - name: Restore R packages with renv
+        run: Rscript -e 'renv::restore()'
 
-      - name: Deploy to shinyapps.io
-        env:
-          SHINYAPPS_NAME: ${{ secrets.SHINYAPPS_NAME }}
-          SHINYAPPS_TOKEN: ${{ secrets.SHINYAPPS_TOKEN }}
-          SHINYAPPS_SECRET: ${{ secrets.SHINYAPPS_SECRET }}
+      - name: Deploy app to shinyapps.io
         run: |
-          library(rsconnect)
-          rsconnect::setAccountInfo(
-            name = Sys.getenv("SHINYAPPS_NAME"),
-            token = Sys.getenv("SHINYAPPS_TOKEN"),
-            secret = Sys.getenv("SHINYAPPS_SECRET")
-          )
-          rsconnect::deployApp(
-            appDir = ".",
-            appName = "RegimeFeux_shiny",
-            forceUpdate = TRUE
-          )
-        shell: Rscript {0}
+          Rscript -e "rsconnect::setAccountInfo(name=Sys.getenv('SHINYAPPS_NAME'), token=Sys.getenv('SHINYAPPS_TOKEN'), secret=Sys.getenv('SHINYAPPS_SECRET'))"
+          Rscript -e "rsconnect::deployApp(appDir = '.', appName = 'RegimeFeux_shiny', forceUpdate = TRUE)"
