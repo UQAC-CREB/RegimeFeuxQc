@@ -5,13 +5,63 @@ library(sf)
 library(dplyr)
 library(ggplot2)
 
-# --- Données ---
-zones_sf   <- st_read("./Data/zones_styled.geojson", quiet = TRUE)
-qc_contour <- readRDS("./Data/Province_contourSimp_wgs84.rds")
+# ==============================
+# CONFIG: lecture depuis GitHub Raw (fallback local)
+# ==============================
+REMOTE_BASE <- "https://raw.githubusercontent.com/hgesdrn/RegimeFeux_shiny/main"  # branche: main
+
+gh_url <- function(path_rel) paste0(REMOTE_BASE, "/", path_rel)
+
+load_sf_safely <- function(local_path, remote_rel = NULL) {
+  try_remote <- function() {
+    if (is.null(remote_rel) || remote_rel == "") return(NULL)
+    url <- gh_url(remote_rel)
+    tf  <- tempfile(fileext = ".geojson")
+    ok  <- try(utils::download.file(url, tf, mode = "wb", quiet = TRUE), silent = TRUE)
+    if (inherits(ok, "try-error")) return(NULL)
+    tryCatch(st_read(tf, quiet = TRUE), error = function(e) NULL)
+  }
+  try_local <- function() {
+    if (!file.exists(local_path)) return(NULL)
+    tryCatch(st_read(local_path, quiet = TRUE), error = function(e) NULL)
+  }
+  out <- try_remote()
+  if (!is.null(out)) return(out)
+  try_local()
+}
+
+load_rds_safely <- function(local_path, remote_rel = NULL) {
+  try_remote <- function() {
+    if (is.null(remote_rel) || remote_rel == "") return(NULL)
+    url <- gh_url(remote_rel)
+    tf  <- tempfile(fileext = ".rds")
+    ok  <- try(utils::download.file(url, tf, mode = "wb", quiet = TRUE), silent = TRUE)
+    if (inherits(ok, "try-error")) return(NULL)
+    tryCatch(readRDS(tf), error = function(e) NULL)
+  }
+  try_local <- function() {
+    if (!file.exists(local_path)) return(NULL)
+    tryCatch(readRDS(local_path), error = function(e) NULL)
+  }
+  out <- try_remote()
+  if (!is.null(out)) return(out)
+  try_local()
+}
+
+# ==============================
+# Chargement des données
+# ==============================
+zones_sf   <- load_sf_safely(local_path = "Data/zones_styled.geojson",
+                             remote_rel = "Data/zones_styled.geojson")
+qc_contour <- load_rds_safely(local_path = "Data/Province_contourSimp_wgs84.rds",
+                              remote_rel = "Data/Province_contourSimp_wgs84.rds")
 
 # Centroides pour l’étiquette permanente au centre des polygones
 zone_centroids <- st_point_on_surface(zones_sf) %>% select(ZONE_ID)
 
+# ===============================
+# UI
+# ===============================
 ui <- fluidPage(
   titlePanel(NULL),
   tags$style(HTML("
@@ -39,22 +89,22 @@ ui <- fluidPage(
     .popup-feux {
       font-family: Arial, sans-serif;
       line-height: 1.3;
-      color: black;          /* Texte par défaut noir */
+      color: black;
     }
     .popup-feux .titre {
       font-weight: bold; 
       font-size: 16px; 
       margin-bottom: 6px; 
-      color: black;          /* Titre aussi en noir */
+      color: black;
     }
     .popup-feux .ligne { 
       margin: 2px 0; 
-      color: black;          /* Forcer la ligne en noir */
+      color: black;
     }
     .popup-feux .label { 
       font-weight: bold; 
       font-size: 15px;
-      color: black;          /* Forcer les labels en noir */
+      color: black;
     }
   ")),
   div("RÉGIMES DE FEUX AU QUÉBEC", class = "header-title"),
@@ -78,6 +128,9 @@ ui <- fluidPage(
   )
 )
 
+# ===============================
+# SERVER
+# ===============================
 server <- function(input, output, session) {
   zone_bounds   <- st_bbox(zones_sf)
   selected_zone <- reactiveVal(NULL)
@@ -99,7 +152,7 @@ server <- function(input, output, session) {
       ) %>%
       addPolygons(
         data = zones_sf,
-        layerId = ~ZONE_ID,                  # IMPORTANT pour capter le clic
+        layerId = ~ZONE_ID,
         fillColor = ~Couleur_hex,
         fillOpacity = 0.6,
         color = "black",
@@ -131,18 +184,15 @@ server <- function(input, output, session) {
       )
   })
   
-  # Gestion du clic : met à jour le panneau et affiche la popup
+  # Gestion du clic
   observeEvent(input$map_shape_click, {
-    # S’assurer qu’on clique un polygone de zones (avec un id)
     zone_id <- input$map_shape_click$id
     if (is.null(zone_id)) return()
     
     selected <- zones_sf %>% filter(ZONE_ID == zone_id)
     if (nrow(selected) == 0) return()
-    
     selected_zone(selected)
     
-    # Contenu HTML de la popup
     popup_html <- sprintf(
       '<div class="popup-feux">
          <div class="titre">Régime de feux</div>
@@ -153,9 +203,8 @@ server <- function(input, output, session) {
       htmltools::htmlEscape(selected$CYCLE_FEU[1])
     )
     
-    # Afficher la popup au point cliqué
     leafletProxy("map") %>%
-      clearPopups() %>%  # retire l’ancienne popup si présente
+      clearPopups() %>%
       addPopups(
         lng = input$map_shape_click$lng,
         lat = input$map_shape_click$lat,
@@ -164,7 +213,7 @@ server <- function(input, output, session) {
       )
   })
   
-  # Panneau de gauche : texte
+  # Texte
   output$info_text <- renderUI({
     z <- selected_zone()
     if (is.null(z)) {
@@ -177,7 +226,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # Panneau de gauche : barplot
+  # Barplot
   output$barplot <- renderPlot({
     if (is.null(selected_zone())) {
       ggplot(
@@ -191,14 +240,7 @@ server <- function(input, output, session) {
           title = "Sélectionnez une zone"
         ) +
         ylim(0, 100) +
-        theme_minimal() +
-        theme(
-          axis.title.x = element_text(size = 16, face = "bold"),
-          axis.title.y = element_text(size = 16, face = "bold"),
-          axis.text.x  = element_text(size = 12),
-          axis.text.y  = element_text(size = 12),
-          plot.title   = element_text(size = 18, face = "bold", hjust = 0.5)
-        )
+        theme_minimal()
     } else {
       z <- selected_zone()
       ggplot(z, aes(x = ZONE_ID, y = SUPERFICIE / 1000)) +
@@ -208,13 +250,7 @@ server <- function(input, output, session) {
           y = "Superficie (km² x 1000)"
         ) +
         ylim(0, 100) +
-        theme_minimal() +
-        theme(
-          axis.title.x = element_text(size = 16, face = "bold"),
-          axis.title.y = element_text(size = 16, face = "bold"),
-          axis.text.x  = element_text(size = 12),
-          axis.text.y  = element_text(size = 12)
-        )
+        theme_minimal()
     }
   })
 }
