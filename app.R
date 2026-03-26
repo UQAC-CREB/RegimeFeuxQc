@@ -8,7 +8,7 @@ library(ggplot2)
 # ==============================
 # CONFIG: lecture depuis GitHub Raw (fallback local)
 # ==============================
-REMOTE_BASE <- "https://raw.githubusercontent.com/hgesdrn/RegimeFeux_shiny/main"  # branche: main
+REMOTE_BASE <- "https://raw.githubusercontent.com/UQAC-CREB/RegimeFeuxQc/main"  # branche: main
 
 gh_url <- function(path_rel) paste0(REMOTE_BASE, "/", path_rel)
 
