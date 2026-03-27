@@ -19,16 +19,6 @@ L'application permet :
 ![Aperçu de l'application](preview.png)
 ---
 
-## 📦 Structure du projet
-RegimeFeux_shiny/
-├── app.R # Application Shiny principale
-├── data/ # Données spatiales et tabulaires utilisées
-├── www/ # Éléments visuels (ex. : CSS, images, logo)
-├── .github/workflows/ # Fichiers GitHub Actions (déploiement automatique)
-├── renv/ # Environnement R verrouillé avec renv
-├── renv.lock # Fichier de verrouillage des dépendances R
-└── README.md
-
 ## 🔄 Déploiement automatique
 
 Le déploiement est déclenché automatiquement lors d’un `git push` sur la branche `main`.  
