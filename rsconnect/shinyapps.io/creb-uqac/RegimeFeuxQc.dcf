@@ -1,0 +1,10 @@
+name: RegimeFeuxQc
+title:
+username: creb-uqac
+account: creb-uqac
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 17000855
+bundleId: 11769781
+url: https://creb-uqac.shinyapps.io/RegimeFeuxQc/
+version: 1

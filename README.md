@@ -3,7 +3,7 @@
 ![Deploy Shiny App](https://github.com/UQAC-CREB/RegimeFeuxQc/actions/workflows/deploy.yml/badge.svg)
 
 Application **Shiny** pour l'exploration du régime des feux de forêt historiques au Québec.  
-Déployée via [shinyapps.io - Régime des feux au Québec](https://hgesdrn.shinyapps.io/RegimeFeux_shiny/).
+Déployée via [shinyapps.io - Régime des feux au Québec](https://creb-uqac.shinyapps.io/RegimeFeuxQc/).
 
 ---
 
