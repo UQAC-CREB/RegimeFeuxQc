@@ -27,15 +27,15 @@ jobs:
             libudunits2-dev
       - name: Install rsconnect
         run: |
-          Rscript -e 'install.packages("rsconnect", repos="https://cloud.r-project.org")'
+          Rscript --no-init-file -e 'install.packages("rsconnect", repos="https://cloud.r-project.org")'
       - name: Deploy to shinyapps.io
         run: |
-          Rscript -e 'rsconnect::setAccountInfo(
+          Rscript --no-init-file -e 'rsconnect::setAccountInfo(
             name   = Sys.getenv("SHINYAPPS_ACCOUNT"),
             token  = Sys.getenv("SHINYAPPS_TOKEN"),
             secret = Sys.getenv("SHINYAPPS_SECRET")
           )'
-          Rscript -e "rsconnect::deployApp(
+          Rscript --no-init-file -e "rsconnect::deployApp(
             appDir         = '.',
             appName        = 'RegimeFeuxQc',
             forceUpdate    = TRUE,
